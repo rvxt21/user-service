@@ -9,7 +9,7 @@ import (
 )
 
 type service interface {
-	SignUp(SignUpRequestBody) error
+	SignUp(string, string) error
 }
 
 type Handlers struct {
@@ -30,14 +30,19 @@ func (h *Handlers) SignUp(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid input", http.StatusBadRequest)
 		return
 	}
-
 	err = utils.SamePasswordVerification(signUpBody.Password, signUpBody.ConfirmPassword)
 	if err != nil {
 		http.Error(w, "Passwords don`t match", http.StatusBadRequest)
 		return
 	}
 
-	err = h.S.SignUp(signUpBody)
+	hash, err := utils.HashPassword(signUpBody.Password)
+	if err != nil {
+		http.Error(w, "Error creating password", http.StatusInternalServerError)
+		return
+	}
+
+	err = h.S.SignUp(hash, signUpBody.Email)
 	if err != nil {
 		http.Error(w, "Error to create user", http.StatusBadRequest)
 	}

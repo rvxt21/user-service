@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"sync"
 	"user/internal/user-service/enteties"
-	"user/internal/user-service/handlers"
 
 	_ "github.com/lib/pq"
 	"github.com/rs/zerolog/log"
@@ -31,14 +30,14 @@ func New(connStr string) (*Database, error) {
 	return &Database{DB: db}, nil
 }
 
-func (db *Database) CreateUser(userReq handlers.SignUpRequestBody) error {
+func (db *Database) CreateUser(password string, email string) error {
 	db.m.Lock()
 	defer db.m.Unlock()
 
 	log.Info().Msg("%s: creating user")
 	var id int
 	query := `INSERT INTO users(email, password, status, role) VALUES ($1, $2,$3, $4) RETURNING id`
-	err := db.DB.QueryRow(query, userReq.Email, userReq.Password, "active", enteties.Buyer).Scan(&id)
+	err := db.DB.QueryRow(query, email, password, "active", enteties.Buyer).Scan(&id)
 	if err != nil {
 		log.Error().Err(err).Msg("%s: unable to create user")
 		return err
