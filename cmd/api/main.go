@@ -28,6 +28,7 @@ func main() {
 	service := service.Service{S: store}
 	handlers := handlers.Handlers{S: service}
 	r.HandleFunc("/users", handlers.SignUp).Methods("POST")
+	r.HandleFunc("/login", handlers.SignIn).Methods("POST")
 	fmt.Println("Starting server at :8080")
 	errServ := http.ListenAndServe(":8080", r)
 	if errServ != nil {
