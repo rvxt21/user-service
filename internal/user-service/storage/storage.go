@@ -32,7 +32,10 @@ func New(connStr string) (*Database, error) {
 	return &Database{DB: db}, nil
 }
 
-var ErrEmailOrLoginAlreadyExists = errors.New("email or login already exists")
+var (
+	ErrEmailOrLoginAlreadyExists = errors.New("email or login already exists")
+	ErrUserNotFound              = errors.New("user not found")
+)
 
 func (db *Database) CreateUser(password, email, login string) error {
 	db.m.Lock()
@@ -53,4 +56,19 @@ func (db *Database) CreateUser(password, email, login string) error {
 		return err
 	}
 	return nil
+}
+
+func (db *Database) GetPasswordByEmail(email string) (string, error) {
+	query := `SELECT password  
+			 FROM users 
+			 WHERE email=$1`
+	var password string
+	err := db.DB.QueryRow(query, email).Scan(&password)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", ErrUserNotFound
+		}
+		return "", err
+	}
+	return password, nil
 }

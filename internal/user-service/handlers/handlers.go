@@ -12,6 +12,7 @@ import (
 
 type service interface {
 	SignUp(string, string, string) error
+	SignIn(email string) (string, error)
 }
 
 type Handlers struct {
@@ -56,4 +57,37 @@ func (h *Handlers) SignUp(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusCreated)
+}
+
+type LoginReqBody struct {
+	Email    string
+	Password string
+}
+
+func (h *Handlers) SignIn(w http.ResponseWriter, r *http.Request) {
+	var login LoginReqBody
+	err := json.NewDecoder(r.Body).Decode(&login)
+	if err != nil {
+		log.Printf("Failed to decode request body: %v", err)
+		http.Error(w, "Invalid input", http.StatusBadRequest)
+		return
+	}
+	hash, err := h.S.SignIn(login.Email)
+	if err != nil {
+		if errors.Is(err, storage.ErrUserNotFound) {
+			http.Error(w, "User not found", http.StatusNotFound)
+			return
+		}
+		log.Debug().Err(err).Msgf("%s", err)
+		http.Error(w, "Something went wrong", http.StatusInternalServerError)
+		return
+	}
+
+	ok := utils.VerifyPassword(login.Password, hash)
+	if !ok {
+		http.Error(w, "Wrong password", http.StatusBadRequest)
+		return
+	}
+
+	w.WriteHeader(http.StatusAccepted)
 }
