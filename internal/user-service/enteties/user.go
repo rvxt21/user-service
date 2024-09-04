@@ -25,3 +25,10 @@ func New(password string, email string, login string) *User {
 		Login:    login,
 	}
 }
+
+type UserPersonalInfo struct {
+	Name     string
+	LastName string
+	Email    string
+	Login    string
+}

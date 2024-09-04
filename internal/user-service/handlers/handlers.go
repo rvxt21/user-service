@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"user/internal/user-service/enteties"
 	"user/internal/user-service/storage"
 	"user/pkg/utils"
 
@@ -13,6 +14,7 @@ import (
 type service interface {
 	SignUp(string, string, string) error
 	SignIn(email string) (string, error)
+	GetPersonalInfo(userEmail string) (enteties.UserPersonalInfo, error)
 }
 
 type Handlers struct {
@@ -97,4 +99,27 @@ func (h *Handlers) SignIn(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(`{"token":"` + token + `"}`))
+}
+
+func (h *Handlers) GetPersonalInfo(w http.ResponseWriter, r *http.Request) {
+	userEmail, ok := r.Context().Value("userEmail").(string)
+	log.Debug().Msg(userEmail)
+	if !ok {
+		http.Error(w, "User not authenticated", http.StatusUnauthorized)
+		return
+	}
+
+	user, err := h.S.GetPersonalInfo(userEmail)
+	if err != nil {
+		if errors.Is(err, storage.ErrUserNotFound) {
+			http.Error(w, "User with this creditionals not found", http.StatusBadRequest)
+			return
+		}
+		http.Error(w, "Something went wrong", http.StatusInternalServerError)
+	}
+
+	err = json.NewEncoder(w).Encode(user)
+	if err != nil {
+		http.Error(w, "Error to encode", http.StatusInternalServerError)
+	}
 }

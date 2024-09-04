@@ -26,9 +26,10 @@ func main() {
 
 	r := mux.NewRouter()
 	service := service.Service{S: store}
-	handlers := handlers.Handlers{S: service}
-	r.HandleFunc("/users", handlers.SignUp).Methods("POST")
-	r.HandleFunc("/login", handlers.SignIn).Methods("POST")
+	handler := handlers.Handlers{S: service}
+	r.HandleFunc("/users", handler.SignUp).Methods("POST")
+	r.HandleFunc("/login", handler.SignIn).Methods("POST")
+	r.Handle("/me", handlers.AuthMiddleware(http.HandlerFunc(handler.GetPersonalInfo))).Methods("GET")
 	fmt.Println("Starting server at :8080")
 	errServ := http.ListenAndServe(":8080", r)
 	if errServ != nil {

@@ -72,3 +72,36 @@ func (db *Database) GetPasswordByEmail(email string) (string, error) {
 	}
 	return password, nil
 }
+
+func (db *Database) GetUserByEmail(email string) (enteties.UserPersonalInfo, error) {
+	query := `SELECT name, lastname, email, login   
+			 FROM users 
+			 WHERE email=$1`
+
+	var name, lastname, emailDB, login sql.NullString
+	err := db.DB.QueryRow(query, email).Scan(&name, &lastname, &emailDB, &login)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return enteties.UserPersonalInfo{}, ErrUserNotFound
+		}
+		if err != nil {
+			log.Debug().Msg(err.Error())
+		}
+		return enteties.UserPersonalInfo{}, err
+	}
+	user := enteties.UserPersonalInfo{
+		Name:     safeGetStringFromNull(name),
+		LastName: safeGetStringFromNull(lastname),
+		Email:    safeGetStringFromNull(emailDB),
+		Login:    safeGetStringFromNull(login),
+	}
+
+	return user, nil
+}
+
+func safeGetStringFromNull(s sql.NullString) string {
+	if s.Valid && s.String != "" {
+		return s.String
+	}
+	return ""
+}
